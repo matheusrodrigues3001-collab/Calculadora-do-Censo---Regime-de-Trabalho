@@ -73,7 +73,10 @@ button:hover {
 </style>
 </head>
 <body>
-<h2>Calculadora de Censo - Regime de Trabalho</h2>
+	<a href="https://matheusrodrigues3001-collab.github.io/Pagina-Inicial---Calculadora-Senso-ENADE/" style="text-decoration: none;">
+	    <button style="width: auto; padding: 8px 15px; margin-bottom: 15px; background: #555; border-radius: 6px;">Voltar</button>
+	</a>
+	<h2>Calculadora de Censo - Regime de Trabalho</h2>
 <label for="curso">Selecione o curso:</label>
 <select id="curso">
     <option value="">Selecione...</option>
@@ -121,8 +124,9 @@ button:hover {
 <label>Quantidade de Parcial:</label>
 <input type="number" id="parcial" placeholder="Digite o número de Parcial">
 <label>Quantidade de Integral:</label>
-<input type="number" id="integral" placeholder="Digite o número de Integral">
-<button onclick="calcular()">Calcular</button>
+	<input type="number" id="integral" placeholder="Digite o número de Integral">
+	<button onclick="calcular()">Calcular</button>
+	<button onclick="limparDados()" style="background: #555; margin-top: 5px;">Limpar Dados</button>
 <div id="resultado"></div>
 <script>
 // Mantendo as classificações originais para que o usuário possa alterá-las depois
@@ -706,124 +710,162 @@ function calcular() {
     const percDecimal = (parcial + integral) / total;
     const percentualFormatado = (percDecimal * 100).toFixed(2) + '%';
 
-    // 4. Determinar a Nota (Classificação) com Interpolação Linear
-    const classificacaoCurso = classificacoes[curso];
-    let nota = 0;
+	    // 4. Determinar a Nota (Classificação) com Interpolação Linear
+	    const classificacaoCurso = classificacoes[curso];
+	    let nota = 0;
 
-    if (classificacaoCurso) {
-        // Percorre a lista de classificações para encontrar o intervalo
-        for (let i = 0; i < classificacaoCurso.length - 1; i++) {
-            const atual = classificacaoCurso[i];
-            const proximo = classificacaoCurso[i + 1];
+	    if (classificacaoCurso) {
+	        nota = obterNotaInterpolada(percDecimal, classificacaoCurso);
+	    } else {
+	        resultadoDiv.innerHTML = `<p style="color: orange;">Classificações não encontradas para o curso de ${curso}.</p>`;
+	        // Continua para mostrar o percentual calculado
+	    }
 
-            // Se for maior ou igual ao limite máximo da nota 5 (o primeiro limite)
-            if (i === 0 && percDecimal >= atual.limite) {
-                nota = atual.nota;
-                break;
-            }
+	    // 5. Exibir o resultado
+	    let htmlResultado = `
+	        <h3>Resultado do Cálculo</h3>
+	        <p><strong>Curso:</strong> ${curso}</p>
+	        <p><strong>Total de Docentes:</strong> ${total}</p>
+	        <p>Horistas: ${horista}</p>
+	        <p>Parcial: ${parcial}</p>
+	        <p>Integral: ${integral}</p>
+	        <hr>
+	        <p><strong>Percentual (Parcial + Integral):</strong> ${percentualFormatado}</p>
+	        <p><strong>Nota (Regime de Trabalho):</strong> <span style="font-size: 1.5em; font-weight: bold; color: ${nota >= 3 ? '#92D050' : nota >= 1 ? '#FFC000' : '#FF0000'};">${nota.toFixed(2)}</span></p>
+	    `;
 
-            // Se estiver dentro do intervalo entre duas notas
-            if (percDecimal >= proximo.limite && percDecimal < atual.limite) {
-                // Interpolação Linear:
-                // nota = nota_proximo + (nota_atual - nota_proximo) * (percDecimal - limite_proximo) / (limite_atual - limite_proximo)
-                const proporcao = (percDecimal - proximo.limite) / (atual.limite - proximo.limite);
-                nota = proximo.nota + proporcao * (atual.nota - proximo.nota);
-                // Não arredonda, apenas limita as casas decimais para exibição
-                nota = Number(nota.toFixed(4)); 
-                break;
-            }
-            
-            // Se for menor que o limite mínimo (nota 0)
-            if (i === classificacaoCurso.length - 2 && percDecimal < proximo.limite) {
-                nota = proximo.nota;
-                break;
-            }
-        }
-    } else {
-        resultadoDiv.innerHTML = `<p style="color: orange;">Classificações não encontradas para o curso de ${curso}.</p>`;
-        // Continua para mostrar o percentual calculado
-    }
+	    resultadoDiv.innerHTML = htmlResultado;
 
-    // 5. Exibir o resultado
-    let htmlResultado = `
-        <h3>Resultado do Cálculo</h3>
-        <p><strong>Curso:</strong> ${curso}</p>
-        <p><strong>Total de Docentes:</strong> ${total}</p>
-        <p>Horistas: ${horista}</p>
-        <p>Parcial: ${parcial}</p>
-        <p>Integral: ${integral}</p>
-        <hr>
-        <p><strong>Percentual (Parcial + Integral):</strong> ${percentualFormatado}</p>
-        <p><strong>Nota (Regime de Trabalho):</strong> <span style="font-size: 1.5em; font-weight: bold; color: ${nota >= 3 ? '#92D050' : nota >= 1 ? '#FFC000' : '#FF0000'};">${nota}</span></p>
-    `;
+	    // 6. Criar e exibir o Semáforo
+	    // O semáforo agora acende a luz mais próxima da nota interpolada
+	    const notaArredondada = Math.round(nota);
+	    const semaforoHtml = criarSemaforo(notaArredondada);
+	    resultadoDiv.insertAdjacentHTML('beforeend', semaforoHtml);
+	}
 
-    resultadoDiv.innerHTML = htmlResultado;
+	function limparDados() {
+	    document.getElementById('curso').value = '';
+	    document.getElementById('horista').value = '';
+	    document.getElementById('parcial').value = '';
+	    document.getElementById('integral').value = '';
+	    document.getElementById('resultado').innerHTML = '';
+	    // Remove o semáforo se existir
+	    const semaforoContainer = document.querySelector('.semaforo-container');
+	    if (semaforoContainer) {
+	        semaforoContainer.remove();
+	    }
+	    // Recria o semáforo vazio
+	    document.getElementById('resultado').insertAdjacentHTML('beforeend', criarSemaforo(-1));
+	}
 
-    // 6. Criar e exibir o Semáforo
-    const semaforoHtml = criarSemaforo(nota);
-    resultadoDiv.insertAdjacentHTML('beforeend', semaforoHtml);
-}
+	function criarSemaforo(notaArredondada) {
+	    // Cores padrão (apagadas)
+	    let cores = ["#444", "#444", "#444", "#444", "#444"];
 
-function criarSemaforo(nota) {
-    // Cores padrão (apagadas)
-    let cores = ["#444", "#444", "#444", "#444", "#444"];
+	    // Acende a luz correspondente à faixa da nota (mesmo fracionada)
+	    // Faixas de nota:
+	    // 1.0 a < 2.0 -> Vermelho (cores[0])
+	    // 2.0 a < 3.0 -> Amarelo (cores[1])
+	    // 3.0 a < 4.0 -> Verde Limão (cores[2])
+	    // 4.0 a < 5.0 -> Verde Oliva (cores[3])
+	    // 5.0 ou mais -> Azul (cores[4])
+	    
+	    let corAtiva = "#444";
+	    let indiceAtivo = -1;
 
-    // Acende a luz correspondente à faixa da nota (mesmo fracionada)
-    // Faixas de nota:
-    // 1.0 a < 2.0 -> Vermelho (cores[0])
-    // 2.0 a < 3.0 -> Amarelo (cores[1])
-    // 3.0 a < 4.0 -> Verde Limão (cores[2])
-    // 4.0 a < 5.0 -> Verde Oliva (cores[3])
-    // 5.0 ou mais -> Azul (cores[4])
-    
-    let corAtiva = "#444";
-    let indiceAtivo = -1;
+	    // Usa a nota arredondada para acender a luz
+	    if (notaArredondada === 1) {
+	        corAtiva = "#FF0000"; // vermelho
+	        indiceAtivo = 0;
+	    } else if (notaArredondada === 2) {
+	        corAtiva = "#FFC000"; // amarelo
+	        indiceAtivo = 1;
+	    } else if (notaArredondada === 3) {
+	        corAtiva = "#92D050"; // verde limão
+	        indiceAtivo = 2;
+	    } else if (notaArredondada === 4) {
+	        corAtiva = "#3C7D22"; // verde oliva
+	        indiceAtivo = 3;
+	    } else if (notaArredondada === 5) {
+	        corAtiva = "#00B0F0"; // azul
+	        indiceAtivo = 4;
+	    }
 
-    if (nota >= 1 && nota < 2) {
-        corAtiva = "#FF0000"; // vermelho
-        indiceAtivo = 0;
-    } else if (nota >= 2 && nota < 3) {
-        corAtiva = "#FFC000"; // amarelo
-        indiceAtivo = 1;
-    } else if (nota >= 3 && nota < 4) {
-        corAtiva = "#92D050"; // verde limão
-        indiceAtivo = 2;
-    } else if (nota >= 4 && nota < 5) {
-        corAtiva = "#3C7D22"; // verde oliva
-        indiceAtivo = 3;
-    } else if (nota >= 5) {
-        corAtiva = "#00B0F0"; // azul
-        indiceAtivo = 4;
-    }
+	    if (indiceAtivo !== -1) {
+	        cores[indiceAtivo] = corAtiva;
+	    }
 
-    if (indiceAtivo !== -1) {
-        cores[indiceAtivo] = corAtiva;
-    }
+	    let semaforoHtml = '<div class="semaforo-container">';
+	    // Nota 1
+	    semaforoHtml += `<div class="luz ${indiceAtivo === 0 ? 'acesa' : ''}" style="background:${cores[0]}; color:${cores[0]}"></div>`;
+	    // Nota 2
+	    semaforoHtml += `<div class="luz ${indiceAtivo === 1 ? 'acesa' : ''}" style="background:${cores[1]}; color:${cores[1]}"></div>`;
+	    // Nota 3
+	    semaforoHtml += `<div class="luz ${indiceAtivo === 2 ? 'acesa' : ''}" style="background:${cores[2]}; color:${cores[2]}"></div>`;
+	    // Nota 4
+	    semaforoHtml += `<div class="luz ${indiceAtivo === 3 ? 'acesa' : ''}" style="background:${cores[3]}; color:${cores[3]}"></div>`;
+	    // Nota 5
+	    semaforoHtml += `<div class="luz ${indiceAtivo === 4 ? 'acesa' : ''}" style="background:${cores[4]}; color:${cores[4]}"></div>`;
+	    semaforoHtml += '</div>';
+	    
+	    return semaforoHtml;
+	}
 
-    let semaforoHtml = '<div class="semaforo-container">';
-    // Nota 1
-    semaforoHtml += `<div class="luz ${indiceAtivo === 0 ? 'acesa' : ''}" style="background:${cores[0]}; color:${cores[0]}"></div>`;
-    // Nota 2
-    semaforoHtml += `<div class="luz ${indiceAtivo === 1 ? 'acesa' : ''}" style="background:${cores[1]}; color:${cores[1]}"></div>`;
-    // Nota 3
-    semaforoHtml += `<div class="luz ${indiceAtivo === 2 ? 'acesa' : ''}" style="background:${cores[2]}; color:${cores[2]}"></div>`;
-    // Nota 4
-    semaforoHtml += `<div class="luz ${indiceAtivo === 3 ? 'acesa' : ''}" style="background:${cores[3]}; color:${cores[3]}"></div>`;
-    // Nota 5
-    semaforoHtml += `<div class="luz ${indiceAtivo === 4 ? 'acesa' : ''}" style="background:${cores[4]}; color:${cores[4]}"></div>`;
-    semaforoHtml += '</div>';
-    
-    return semaforoHtml;
-}
+	/**
+	 * Função para realizar a interpolação linear da nota.
+	 * @param {number} percentual - O percentual de regime integral calculado.
+	 * @param {Array<Object>} classificacaoCurso - A lista de limites e notas para o curso.
+	 * @returns {number} A nota interpolada.
+	 */
+	function obterNotaInterpolada(percentual, classificacaoCurso) {
+	    // A lista de classificação deve estar ordenada de forma decrescente pelo limite (do maior para o menor)
 
-// Inicializa o semáforo vazio ao carregar a página
-document.addEventListener('DOMContentLoaded', () => {
-    // Remove o semáforo inicial se existir (pois ele será criado no cálculo)
-    const semaforoContainer = document.querySelector('.semaforo-container');
-    if (semaforoContainer) {
-        semaforoContainer.remove();
-    }
-});
-</script>
-</body>
-</html>
+	    // Se o percentual for maior ou igual ao limite superior (nota 5), retorna 5
+	    if (percentual >= classificacaoCurso[0].limite) {
+	        return 5.0;
+	    }
+
+	    // Se o percentual for menor que o limite inferior (nota 0), retorna 0
+	    const limiteInferior = classificacaoCurso[classificacaoCurso.length - 1].limite;
+	    if (percentual < limiteInferior) {
+	        return 0.0;
+	    }
+
+	    // Itera sobre os limites para encontrar o intervalo de interpolação
+	    for (let i = 0; i < classificacaoCurso.length - 1; i++) {
+	        const pontoSuperior = classificacaoCurso[i]; // Ex: { limite: 0.9, nota: 5 }
+	        const pontoInferior = classificacaoCurso[i + 1]; // Ex: { limite: 0.8, nota: 4 }
+
+	        // Verifica se o percentual está entre o limite superior e o limite inferior
+	        if (percentual < pontoSuperior.limite && percentual >= pontoInferior.limite) {
+	            const x1 = pontoInferior.limite; // Limite inferior do intervalo (ex: 0.8)
+	            const y1 = pontoInferior.nota;   // Nota inferior do intervalo (ex: 4)
+	            const x2 = pontoSuperior.limite; // Limite superior do intervalo (ex: 0.9)
+	            const y2 = pontoSuperior.nota;   // Nota superior do intervalo (ex: 5)
+	            const x = percentual;            // Valor a ser interpolado (percentual)
+
+	            // Fórmula da Interpolação Linear: y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
+	            const notaInterpolada = y1 + (x - x1) * (y2 - y1) / (x2 - x1);
+
+	            // Arredonda para duas casas decimais para melhor visualização
+	            return parseFloat(notaInterpolada.toFixed(2));
+	        }
+	    }
+
+	    // Caso o percentual seja exatamente igual ao limite superior (que já foi tratado, mas como fallback)
+	    return classificacaoCurso[0].nota;
+	}
+
+	// Inicializa o semáforo vazio ao carregar a página
+	document.addEventListener('DOMContentLoaded', () => {
+	    // Remove o semáforo inicial se existir (pois ele será criado no cálculo)
+	    const semaforoContainer = document.querySelector('.semaforo-container');
+	    if (semaforoContainer) {
+	        semaforoContainer.remove();
+	    }
+	    // Recria o semáforo vazio
+	    document.getElementById('resultado').insertAdjacentHTML('beforeend', criarSemaforo(-1));
+	});
+	</script>
+	</body>
+	</html>
